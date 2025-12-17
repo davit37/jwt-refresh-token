@@ -5,5 +5,6 @@ export interface User {
     email: string;
     password?: string; // Optional because we might return user without password
     role: Role;
+    tokenVersion: number;
     createdAt: Date;
 }

@@ -5,6 +5,7 @@ import { config } from '../../config/env.config';
 export interface AccessTokenPayload {
     userId: string;
     role: string;
+    tokenVersion: number;
 }
 
 export interface RefreshTokenPayload {

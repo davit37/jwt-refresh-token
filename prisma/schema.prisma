@@ -13,11 +13,12 @@ datasource db {
 // }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  role         String   @default("USER")
+  tokenVersion Int      @default(1)
+  createdAt    DateTime @default(now())
   
   refreshTokens RefreshToken[]
 }

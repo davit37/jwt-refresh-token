@@ -11,7 +11,7 @@ const userRepository = new UserRepository();
 const refreshTokenRepository = new RefreshTokenRepository();
 const registerUseCase = new RegisterUseCase(userRepository);
 const loginUseCase = new LoginUseCase(userRepository, refreshTokenRepository);
-const refreshTokenUseCase = new RefreshTokenUseCase(refreshTokenRepository);
+const refreshTokenUseCase = new RefreshTokenUseCase(refreshTokenRepository, userRepository);
 
 export class AuthController {
     static async register(req: Request, res: Response) {

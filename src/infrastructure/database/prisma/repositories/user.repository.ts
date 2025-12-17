@@ -12,11 +12,12 @@ export class UserRepository {
         if (!user) return null;
         return {
             ...user,
-            role: user.role as Role
+            role: user.role as Role,
+            tokenVersion: user.tokenVersion
         };
     }
 
-    async create(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+    async create(user: Omit<User, 'id' | 'createdAt' | 'tokenVersion'>): Promise<User> {
         const created = await prisma.user.create({
             data: {
                 email: user.email,
@@ -26,7 +27,8 @@ export class UserRepository {
         });
         return {
             ...created,
-            role: created.role as Role
+            role: created.role as Role,
+            tokenVersion: created.tokenVersion
         };
     }
 
@@ -35,7 +37,17 @@ export class UserRepository {
         if (!user) return null;
         return {
             ...user,
-            role: user.role as Role
+            role: user.role as Role,
+            tokenVersion: user.tokenVersion
         };
     }
+
+    async incrementTokenVersion(userId: string): Promise<number> {
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: { tokenVersion: { increment: 1 } },
+        });
+        return updated.tokenVersion;
+    }
 }
+

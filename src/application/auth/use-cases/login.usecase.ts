@@ -23,7 +23,7 @@ export class LoginUseCase {
         }
 
         // Generate tokens
-        const accessToken = JwtService.signAccessToken({ userId: user.id, role: user.role });
+        const accessToken = JwtService.signAccessToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
 
         // Generate new Family ID for this login session
         const familyId = uuidv4();

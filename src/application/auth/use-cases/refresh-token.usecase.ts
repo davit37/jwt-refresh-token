@@ -1,9 +1,13 @@
 import { RefreshTokenRepository } from '../../../infrastructure/database/prisma/repositories/refresh-token.repository';
+import { UserRepository } from '../../../infrastructure/database/prisma/repositories/user.repository';
 import { JwtService } from '../../../infrastructure/security/jwt.service';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RefreshTokenUseCase {
-    constructor(private refreshTokenRepository: RefreshTokenRepository) { }
+    constructor(
+        private refreshTokenRepository: RefreshTokenRepository,
+        private userRepository: UserRepository
+    ) { }
 
     async execute(incomingRefreshToken: string) {
         // 1. Verify JWT signature (stateless check)
@@ -33,8 +37,9 @@ export class RefreshTokenUseCase {
             // REVOKED TOKEN USED!
             // This means someone is trying to use an old token. 
             // It could be the legitimate user (race condition) or a thief.
-            // Security Policy: Revoke the entire family.
+            // Security Policy: Revoke the entire family AND increment tokenVersion.
             await this.refreshTokenRepository.revokeFamily(tokenRecord.familyId);
+            await this.userRepository.incrementTokenVersion(tokenRecord.userId);
             throw new Error('Refresh token reuse detected. Access denied.');
         }
 
@@ -47,13 +52,19 @@ export class RefreshTokenUseCase {
         // a. Revoke current token
         await this.refreshTokenRepository.revoke(tokenRecord.id);
 
-        // b. Generate NEW tokens
+        // b. Fetch user to get current role and tokenVersion
+        const user = await this.userRepository.findById(tokenRecord.userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // c. Generate NEW tokens
         // Important: Keep SAME familyId
-        const newAccessToken = JwtService.signAccessToken({ userId: tokenRecord.userId, role: 'USER' }); // Role fetching omitted for speed, ideally fetch user
-        // Note: To include role properly, we should probably fetch user. But payload might contain it? 
-        // The refresher payload only had userId and familyId. 
-        // Simplification: We assume role 'USER' or we should fetch user. 
-        // BETTER: Fetch user to get current role.
+        const newAccessToken = JwtService.signAccessToken({
+            userId: user.id,
+            role: user.role,
+            tokenVersion: user.tokenVersion
+        });
 
         const newRefreshToken = JwtService.signRefreshToken({ userId: tokenRecord.userId, familyId: tokenRecord.familyId });
         const newHashedToken = JwtService.hashToken(newRefreshToken);
@@ -61,7 +72,7 @@ export class RefreshTokenUseCase {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
 
-        // c. Store NEW refresh token
+        // d. Store NEW refresh token
         await this.refreshTokenRepository.create({
             hashedToken: newHashedToken,
             userId: tokenRecord.userId,
@@ -76,3 +87,4 @@ export class RefreshTokenUseCase {
         };
     }
 }
+
